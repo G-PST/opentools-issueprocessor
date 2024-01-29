@@ -101,30 +101,37 @@ def dump_new_file(obj: BaseModel, json_file: Path):
     if not json_file.exists():
         with open(json_file, "w", encoding="utf-8") as file_pointer:
             json.dump(obj.model_dump(), file_pointer)
-
+        return json_file
 
 def update_licenses(licenses: list[dict], license_path: Path):
     """Update licenses."""
+
+    updated_files = []
+
     for lic in licenses:
         file_name = _check_unique_name(lic)
         lic_pydantic = Licenses(name=lic["name"])
-        dump_new_file(lic_pydantic, license_path / file_name)
+        response = dump_new_file(lic_pydantic, license_path / file_name)
+        if response:
+            updated_files.append(response)
 
 
 def update_organizations(orgs: list[dict], org_path: Path):
     """Update organizations."""
-
+    updated_files = []
     for org in orgs:
         file_name = _check_unique_name(org)
         org_pydantic = Organization(
             name=org["name"], description=org["description"], url=org["url"]
         )
-        dump_new_file(org_pydantic, org_path / file_name)
-
+        response = dump_new_file(org_pydantic, org_path / file_name)
+        if response:
+            updated_files.append(response)
 
 def update_languages(langs: list[dict], lang_path: Path):
     """Update languages."""
 
+    updated_files = []
     for lang in langs:
         file_name = _check_unique_name(lang)
         lang_pydantic = ProgrammingLanguage(
@@ -133,7 +140,9 @@ def update_languages(langs: list[dict], lang_path: Path):
             url=lang["url"],
             licenses=lang["licenses"],
         )
-        dump_new_file(lang_pydantic, lang_path / file_name)
+        response = dump_new_file(lang_pydantic, lang_path / file_name)
+        if response:
+            updated_files.append(response)
 
 
 def process_issue_json_file(json_file_path: Path, data_path: Path):
@@ -142,17 +151,19 @@ def process_issue_json_file(json_file_path: Path, data_path: Path):
     with open(json_file_path, "r", encoding="utf-8") as file_pointer:
         issue_content = json.load(file_pointer)
 
+    new_files = []
     if "licenses" in issue_content and issue_content["licenses"]:
-        update_licenses(issue_content["licenses"], data_path / "licenses")
+        new_files += update_licenses(issue_content["licenses"], data_path / "licenses")
 
     if "organizations" in issue_content and issue_content["organizations"]:
-        update_organizations(
+        new_files += update_organizations(
             issue_content["organizations"], data_path / "organizations"
         )
 
     if "languages" in issue_content and issue_content["languages"]:
-        update_languages(issue_content["languages"], data_path / "languages")
+        new_files += update_languages(issue_content["languages"], data_path / "languages")
 
+    return new_files
 
 def main():
     """Entry function for github action."""
@@ -175,17 +186,22 @@ def main():
             return
         setup_github_permissions()
         branch_name = f"issue_{issue_number}_branch"
-        subprocess.run(["git", "checkout", "-b", branch_name], check=True)
-        process_issue_json_file(
+
+        new_files = process_issue_json_file(
             Path(file_name), Path(os.environ["INPUT_DATAPATH"])
         )
-        os.remove(file_name)
-        subprocess.run(["git", "add", "."], check=True)
-        commit_message = f"Add issue file: {file_name}"
-        subprocess.run(["git", "commit", "-m", commit_message], check=True)
-        subprocess.run(
-            ["git", "push", "--set-upstream", "origin", branch_name], check=True
-        )
+        if new_files:
+            subprocess.run(["git", "checkout", "-b", branch_name], check=True)
+            os.remove(file_name)
+            subprocess.run(["git", "add", "."], check=True)
+            commit_message = f"Add issue file: {file_name}"
+            subprocess.run(["git", "commit", "-m", commit_message], check=True)
+            subprocess.run(
+                ["git", "push", "--set-upstream", "origin", branch_name], check=True
+            )
+            print(f"::set-output name=branch::{branch_name}")
+        else:
+            print("No files to change. ")
         print("::set-output name=exitcode::0")
 
 
