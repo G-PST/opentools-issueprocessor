@@ -173,7 +173,6 @@ def main():
         if not file_name:
             print("::set-output name=exitcode::0")
             return
-        print(f'data_path: {os.environ["INPUT_DATAPATH"]}', f"current path: {os.getcwd()}")
         setup_github_permissions()
         branch_name = f"issue_{issue_number}_branch"
         subprocess.run(["git", "checkout", "-b", branch_name], check=True)
@@ -181,7 +180,7 @@ def main():
             Path(file_name), Path(os.environ["INPUT_DATAPATH"])
         )
         os.remove(file_name)
-        subprocess.run(["git", "add", file_name], check=True)
+        subprocess.run(["git", "add", "."], check=True)
         commit_message = f"Add issue file: {file_name}"
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
         subprocess.run(
