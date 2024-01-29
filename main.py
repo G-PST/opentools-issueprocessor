@@ -95,7 +95,7 @@ def _check_unique_name(ent: dict):
     return ent["unique_name"].lower().replace(" ", "-") + ".json"
 
 
-def dump_new_file(obj: BaseModel, json_file: Path):
+def dump_new_file(obj: BaseModel, json_file: Path) -> None | Path:
     """Dumps to json file."""
 
     if not json_file.exists():
@@ -103,7 +103,7 @@ def dump_new_file(obj: BaseModel, json_file: Path):
             json.dump(obj.model_dump(), file_pointer)
         return json_file
 
-def update_licenses(licenses: list[dict], license_path: Path):
+def update_licenses(licenses: list[dict], license_path: Path) -> list[Path]:
     """Update licenses."""
 
     updated_files = []
@@ -115,8 +115,9 @@ def update_licenses(licenses: list[dict], license_path: Path):
         if response:
             updated_files.append(response)
 
+    return updated_files
 
-def update_organizations(orgs: list[dict], org_path: Path):
+def update_organizations(orgs: list[dict], org_path: Path) -> list[Path]:
     """Update organizations."""
     updated_files = []
     for org in orgs:
@@ -127,8 +128,9 @@ def update_organizations(orgs: list[dict], org_path: Path):
         response = dump_new_file(org_pydantic, org_path / file_name)
         if response:
             updated_files.append(response)
+    return updated_files
 
-def update_languages(langs: list[dict], lang_path: Path):
+def update_languages(langs: list[dict], lang_path: Path) -> list[Path]:
     """Update languages."""
 
     updated_files = []
@@ -143,7 +145,7 @@ def update_languages(langs: list[dict], lang_path: Path):
         response = dump_new_file(lang_pydantic, lang_path / file_name)
         if response:
             updated_files.append(response)
-
+    return updated_files
 
 def process_issue_json_file(json_file_path: Path, data_path: Path):
     """Process issue json file."""
