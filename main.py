@@ -5,9 +5,14 @@ import os
 import http
 import re
 import subprocess
+from pathlib import Path
+import json
+from pydantic import BaseModel
 
 # third-party imports
 import requests
+
+from interface import Licenses, Organization, ProgrammingLanguage
 
 
 def download_data_file(issue_url: str, access_token: str):
@@ -79,6 +84,76 @@ def setup_github_permissions():
     )
 
 
+def _check_unique_name(ent: dict):
+    """Function to check unique name."""
+    if "unique_name" not in ent:
+        msg = f"unique name does not exist in {ent=}"
+        raise ValueError(msg)
+    if not ent["unique_name"]:
+        msg = f"Unique name is empty in {ent=}"
+        raise ValueError(msg)
+    return ent["unique_name"].lower().replace(" ", "-") + ".json"
+
+
+def dump_new_file(obj: BaseModel, json_file: Path):
+    """Dumps to json file."""
+
+    if not json_file.exists():
+        with open(json_file, "w", encoding="utf-8") as file_pointer:
+            json.dump(obj.model_dump(), file_pointer)
+
+
+def update_licenses(licenses: list[dict], license_path: Path):
+    """Update licenses."""
+    for lic in licenses:
+        file_name = _check_unique_name(lic)
+        lic_pydantic = Licenses(name=lic["name"])
+        dump_new_file(lic_pydantic, license_path / file_name)
+
+
+def update_organizations(orgs: list[dict], org_path: Path):
+    """Update organizations."""
+
+    for org in orgs:
+        file_name = _check_unique_name(org)
+        org_pydantic = Organization(
+            name=org["name"], description=org["description"], url=org["url"]
+        )
+        dump_new_file(org_pydantic, org_path / file_name)
+
+
+def update_languages(langs: list[dict], lang_path: Path):
+    """Update languages."""
+
+    for lang in langs:
+        file_name = _check_unique_name(lang)
+        lang_pydantic = ProgrammingLanguage(
+            name=lang["name"],
+            description=lang["description"],
+            url=lang["url"],
+            licenses=lang["licenses"],
+        )
+        dump_new_file(lang_pydantic, lang_path / file_name)
+
+
+def process_issue_json_file(json_file_path: Path, data_path: Path):
+    """Process issue json file."""
+
+    with open(json_file_path, "r", encoding="utf-8") as file_pointer:
+        issue_content = json.load(file_pointer)
+
+    if "licenses" in issue_content and issue_content["licenses"]:
+        update_licenses(issue_content["licenses"], data_path / "licenses")
+
+    if "organizations" in issue_content and issue_content["organizations"]:
+        update_organizations(
+            issue_content["organizations"], data_path / "organizations"
+        )
+
+    if "languages" in issue_content and issue_content["languages"]:
+        update_languages(issue_content["languages"], data_path / "languages")
+
+
 def main():
     """Entry function for github action."""
     issue_number = os.environ["INPUT_ISSUE_NUMBER"]
@@ -102,6 +177,10 @@ def main():
         setup_github_permissions()
         branch_name = f"issue_{issue_number}_branch"
         subprocess.run(["git", "checkout", "-b", branch_name], check=True)
+        process_issue_json_file(
+            Path(file_name), Path(os.environ["INPUT_DATAPATH"])
+        )
+        os.remove(file_name)
         subprocess.run(["git", "add", file_name], check=True)
         commit_message = f"Add issue file: {file_name}"
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
@@ -109,9 +188,6 @@ def main():
             ["git", "push", "--set-upstream", "origin", branch_name], check=True
         )
         print("::set-output name=exitcode::0")
-        #data_path = os.environ["INPUT_DATAPATH"]
-   
-
 
 
 if __name__ == "__main__":
