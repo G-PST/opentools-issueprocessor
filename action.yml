@@ -20,6 +20,8 @@ inputs:
 outputs:
   exitcode:
     description: "Returns exit code after running pytest."
+  branch:
+    description: "Branch name if created"
 runs:
   using: docker
   image: "Dockerfile"
