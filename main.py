@@ -193,14 +193,14 @@ def main():
             Path(file_name), Path(os.environ["INPUT_DATAPATH"])
         )
         if new_files:
-            subprocess.run(["git", "checkout", "-b", branch_name], check=True)
+            # subprocess.run(["git", "checkout", "-b", branch_name], check=True)
             os.remove(file_name)
-            subprocess.run(["git", "add", "."], check=True)
-            commit_message = f"Add issue file: {file_name}"
-            subprocess.run(["git", "commit", "-m", commit_message], check=True)
-            subprocess.run(
-                ["git", "push", "--set-upstream", "origin", branch_name], check=True
-            )
+            # subprocess.run(["git", "add", "."], check=True)
+            # commit_message = f"Add issue file: {file_name}"
+            # subprocess.run(["git", "commit", "-m", commit_message], check=True)
+            # subprocess.run(
+            #     ["git", "push", "--set-upstream", "origin", branch_name], check=True
+            # )
             print(f"::set-output name=branch::{branch_name}")
         else:
             print("No files to change. ")
