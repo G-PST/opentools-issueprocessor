@@ -1,0 +1,25 @@
+name: "GPST Opensource Tool Data Issue Processor"
+description: "Use this action to process issues in gpst portal data."
+author: "Kapil Duwadi"
+inputs:
+  datapath:
+    description: "Path to data folder which is to be tested. By default assumes 'data' folder exists at the root of the repo."
+    required: false 
+  issue_number:
+    description: "Specify Issue Number"
+    required: false 
+  issue_title: 
+    description: "Specify Issue Title"
+    required: false 
+  issue_url:
+    description: "Specify Issue URL"
+    required: false 
+  token:
+    description: "Github Access Token"
+    required: false
+outputs:
+  exitcode:
+    description: "Returns exit code after running pytest."
+runs:
+  using: docker
+  image: "Dockerfile"
