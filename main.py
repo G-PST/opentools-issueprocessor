@@ -100,7 +100,7 @@ def dump_new_file(obj: BaseModel, json_file: Path) -> None | Path:
 
     if not json_file.exists():
         with open(json_file, "w", encoding="utf-8") as file_pointer:
-            json.dump(obj.model_dump(), file_pointer)
+            json.dump(obj.model_dump(), file_pointer, indent=4)
         return json_file
 
 def update_licenses(licenses: list[dict], license_path: Path) -> list[Path]:
