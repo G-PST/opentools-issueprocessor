@@ -188,7 +188,7 @@ def process_issue_json_file(json_file_path: Path, data_path: Path):
         new_files += update_languages(issue_content["languages"], data_path / "languages")
 
     if "software" in issue_content and issue_content["software"]:
-        new_files += update_languages(issue_content["software"], data_path / "software")
+        new_files += update_software(issue_content["software"], data_path / "software")
     return new_files
 
 def main():
