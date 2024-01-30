@@ -12,7 +12,7 @@ from pydantic import BaseModel
 # third-party imports
 import requests
 
-from interface import Licenses, Organization, ProgrammingLanguage
+from interface import Licenses, Organization, ProgrammingLanguage, SoftwareTool
 
 
 def download_data_file(issue_url: str, access_token: str):
@@ -147,6 +147,28 @@ def update_languages(langs: list[dict], lang_path: Path) -> list[Path]:
             updated_files.append(response)
     return updated_files
 
+def update_software(softs: list[dict], soft_path: Path) -> list[Path]:
+    """Update spftware"""
+
+    updated_files = []
+    for soft in softs:
+        file_name = _check_unique_name(soft)
+        lang_pydantic = SoftwareTool(
+            name=soft["name"],
+            description=soft["description"],
+            licenses=soft["licenses"],
+            languages=soft["languages"],
+            organizations=soft["organizations"],
+            categories=soft["categories"],
+            url_website=soft["url_website"],
+            url_sourcecode=soft["url_sourcecode"],
+            url_docs=soft["url_docs"]
+        )
+        response = dump_new_file(lang_pydantic, soft_path / file_name)
+        if response:
+            updated_files.append(response)
+    return updated_files
+
 def process_issue_json_file(json_file_path: Path, data_path: Path):
     """Process issue json file."""
 
@@ -165,6 +187,8 @@ def process_issue_json_file(json_file_path: Path, data_path: Path):
     if "languages" in issue_content and issue_content["languages"]:
         new_files += update_languages(issue_content["languages"], data_path / "languages")
 
+    if "software" in issue_content and issue_content["software"]:
+        new_files += update_languages(issue_content["software"], data_path / "software")
     return new_files
 
 def main():
@@ -192,15 +216,8 @@ def main():
         new_files = process_issue_json_file(
             Path(file_name), Path(os.environ["INPUT_DATAPATH"])
         )
+        os.remove(file_name)
         if new_files:
-            # subprocess.run(["git", "checkout", "-b", branch_name], check=True)
-            os.remove(file_name)
-            # subprocess.run(["git", "add", "."], check=True)
-            # commit_message = f"Add issue file: {file_name}"
-            # subprocess.run(["git", "commit", "-m", commit_message], check=True)
-            # subprocess.run(
-            #     ["git", "push", "--set-upstream", "origin", branch_name], check=True
-            # )
             print(f"::set-output name=branch::{branch_name}")
         else:
             print("No files to change. ")
