@@ -19,20 +19,20 @@ def download_data_file(issue_url: str, access_token: str):
     """Function to download issue file."""
     print("Starting to download the file.")
     headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(f"{issue_url}/comments", headers=headers)
+    response = requests.get(issue_url, headers=headers, timeout=900)
 
     print(f"Response: {response} {response.status_code} {headers}")
     if response.status_code != http.HTTPStatus.OK:
         return
 
-    comments = response.json()
-    print(f"Comments: {comments}")
-    if not comments:
+    data = response.json()
+    print(f"Body: {data.get('body')}")
+    if not data.get('body'):
         return
 
     json_files = [
         item
-        for item in re.findall(r"(https?://[^\s)]+)", comments[-1]["body"])
+        for item in re.findall(r"(https?://[^\s)]+)", data["body"])
         if item.endswith(".json")
     ]
 
@@ -43,7 +43,7 @@ def download_data_file(issue_url: str, access_token: str):
 
     latest_json_file = json_files[-1]
     file_name = latest_json_file.split("/")[-1]
-    file_response = requests.get(latest_json_file)
+    file_response = requests.get(latest_json_file, timeout=900)
 
     if file_response.status_code != http.HTTPStatus.OK:
         return False
