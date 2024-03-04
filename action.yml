@@ -21,7 +21,9 @@ outputs:
   exitcode:
     description: "Returns exit code after running pytest."
   branch:
-    description: "Branch name if created"
+    description: "Branch name if created."
+  errormessage:
+    description: "Error message associated with parsing."
 runs:
   using: docker
   image: "Dockerfile"
