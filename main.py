@@ -1,15 +1,14 @@
 """ Entry python module for github action. """
 
-# standard imports
 import os
 import http
 import re
 import subprocess
 from pathlib import Path
 import json
-from pydantic import BaseModel
+import traceback
 
-# third-party imports
+from pydantic import BaseModel
 import requests
 
 from interface import Licenses, Organization, ProgrammingLanguage, SoftwareTool
@@ -27,7 +26,7 @@ def download_data_file(issue_url: str, access_token: str):
 
     data = response.json()
     print(f"Body: {data.get('body')}")
-    if not data.get('body'):
+    if not data.get("body"):
         return
 
     json_files = [
@@ -103,6 +102,7 @@ def dump_new_file(obj: BaseModel, json_file: Path) -> None | Path:
             json.dump(obj.model_dump(), file_pointer, indent=4)
         return json_file
 
+
 def update_licenses(licenses: list[dict], license_path: Path) -> list[Path]:
     """Update licenses."""
 
@@ -117,6 +117,7 @@ def update_licenses(licenses: list[dict], license_path: Path) -> list[Path]:
 
     return updated_files
 
+
 def update_organizations(orgs: list[dict], org_path: Path) -> list[Path]:
     """Update organizations."""
     updated_files = []
@@ -129,6 +130,7 @@ def update_organizations(orgs: list[dict], org_path: Path) -> list[Path]:
         if response:
             updated_files.append(response)
     return updated_files
+
 
 def update_languages(langs: list[dict], lang_path: Path) -> list[Path]:
     """Update languages."""
@@ -147,6 +149,7 @@ def update_languages(langs: list[dict], lang_path: Path) -> list[Path]:
             updated_files.append(response)
     return updated_files
 
+
 def update_software(softs: list[dict], soft_path: Path) -> list[Path]:
     """Update spftware"""
 
@@ -162,12 +165,13 @@ def update_software(softs: list[dict], soft_path: Path) -> list[Path]:
             categories=soft["categories"],
             url_website=soft["url_website"],
             url_sourcecode=soft["url_sourcecode"],
-            url_docs=soft["url_docs"]
+            url_docs=soft["url_docs"],
         )
         response = dump_new_file(lang_pydantic, soft_path / file_name)
         if response:
             updated_files.append(response)
     return updated_files
+
 
 def process_issue_json_file(json_file_path: Path, data_path: Path):
     """Process issue json file."""
@@ -177,7 +181,9 @@ def process_issue_json_file(json_file_path: Path, data_path: Path):
 
     new_files = []
     if "licenses" in issue_content and issue_content["licenses"]:
-        new_files += update_licenses(issue_content["licenses"], data_path / "licenses")
+        new_files += update_licenses(
+            issue_content["licenses"], data_path / "licenses"
+        )
 
     if "organizations" in issue_content and issue_content["organizations"]:
         new_files += update_organizations(
@@ -185,11 +191,16 @@ def process_issue_json_file(json_file_path: Path, data_path: Path):
         )
 
     if "languages" in issue_content and issue_content["languages"]:
-        new_files += update_languages(issue_content["languages"], data_path / "languages")
+        new_files += update_languages(
+            issue_content["languages"], data_path / "languages"
+        )
 
     if "software" in issue_content and issue_content["software"]:
-        new_files += update_software(issue_content["software"], data_path / "software")
+        new_files += update_software(
+            issue_content["software"], data_path / "software"
+        )
     return new_files
+
 
 def main():
     """Entry function for github action."""
@@ -206,23 +217,27 @@ def main():
             return
 
         os.environ["GITHUB_TOKEN"] = token
-        file_name = download_data_file(issue_url, token)
-        if not file_name:
+
+        try:
+            file_name = download_data_file(issue_url, token)
+            if not file_name:
+                print("::set-output name=exitcode::0")
+                return
+            setup_github_permissions()
+            branch_name = f"issue_{issue_number}_branch"
+
+            new_files = process_issue_json_file(
+                Path(file_name), Path(os.environ["INPUT_DATAPATH"])
+            )
+            os.remove(file_name)
+            if new_files:
+                print(f"::set-output name=branch::{branch_name}")
+            else:
+                print("No files to change. ")
             print("::set-output name=exitcode::0")
-            return
-        setup_github_permissions()
-        branch_name = f"issue_{issue_number}_branch"
-
-        new_files = process_issue_json_file(
-            Path(file_name), Path(os.environ["INPUT_DATAPATH"])
-        )
-        os.remove(file_name)
-        if new_files:
-            print(f"::set-output name=branch::{branch_name}")
-        else:
-            print("No files to change. ")
-        print("::set-output name=exitcode::0")
-
+        except Exception as _:
+            print(f"::set-output name=errormessage::{traceback.format_exc()}")
+            
 
 if __name__ == "__main__":
     main()
