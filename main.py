@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 import json
 import traceback
+from typing import Optional
 
 from pydantic import BaseModel
 import requests
@@ -14,26 +15,41 @@ import requests
 from interface import Licenses, Organization, ProgrammingLanguage, SoftwareTool
 
 
-def download_data_file(issue_url: str, access_token: str):
-    """Function to download issue file."""
-    print("Starting to download the file.")
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(issue_url, headers=headers, timeout=900)
+def get_json_file_urls_from_string(text: str) -> list[str]:
+    """Function to return json file urls from string."""
 
+    return [
+        item
+        for item in re.findall(r"(https?://[^\s)]+)", text)
+        if item.endswith(".json")
+    ]
+
+
+def get_json_response(url: str, access_token: str) -> Optional[dict]:
+    """Function to get json response by sending get request."""
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url, headers=headers, timeout=900)
     print(f"Response: {response} {response.status_code} {headers}")
     if response.status_code != http.HTTPStatus.OK:
         return
 
-    data = response.json()
-    print(f"Body: {data.get('body')}")
-    if not data.get("body"):
-        return
+    response_json = response.json()
+    print(f"Response JSON: {response_json}")
+    return response.json()
 
-    json_files = [
-        item
-        for item in re.findall(r"(https?://[^\s)]+)", data["body"])
-        if item.endswith(".json")
-    ]
+
+def download_data_file(issue_url: str, access_token: str):
+    """Function to download issue file."""
+    print("Starting to download the file.")
+
+    comments = get_json_response(f"{issue_url}/comments", access_token)
+    if not comments:
+        body = get_json_response(issue_url, access_token)
+        if not body.get("body"):
+            return
+        json_files = get_json_file_urls_from_string(body["body"])
+    else:
+        json_files = get_json_file_urls_from_string(comments[-1]["body"])
 
     if not json_files:
         return
@@ -237,7 +253,7 @@ def main():
             print("::set-output name=exitcode::0")
         except Exception as _:
             print(f"::set-output name=errormessage::{traceback.format_exc()}")
-            
+
 
 if __name__ == "__main__":
     main()
