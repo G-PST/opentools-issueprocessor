@@ -165,7 +165,7 @@ def update_languages(langs: list[dict], lang_path: Path) -> list[Path]:
             name=lang["name"],
             description=lang["description"],
             url=lang["url"],
-            licenses= list(map(get_json_file_urls_from_string, lang['licenses'])),
+            licenses= list(map(get_unique_id_from_string, lang['licenses'])),
         )
         response = dump_new_file(lang_pydantic, lang_path / file_name)
         if response:
@@ -182,10 +182,10 @@ def update_software(softs: list[dict], soft_path: Path) -> list[Path]:
         lang_pydantic = SoftwareTool(
             name=soft["name"],
             description=soft["description"],
-            licenses=list(map(get_json_file_urls_from_string,soft["licenses"])),
-            languages=list(map(get_json_file_urls_from_string,soft["languages"])),
-            organizations=list(map(get_json_file_urls_from_string,soft["organizations"])),
-            categories=list(map(get_json_file_urls_from_string,soft["categories"])),
+            licenses=list(map(get_unique_id_from_string,soft["licenses"])),
+            languages=list(map(get_unique_id_from_string,soft["languages"])),
+            organizations=list(map(get_unique_id_from_string,soft["organizations"])),
+            categories=list(map(get_unique_id_from_string,soft["categories"])),
             url_website=soft["url_website"],
             url_sourcecode=soft["url_sourcecode"],
             url_docs=soft["url_docs"],
