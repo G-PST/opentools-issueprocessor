@@ -115,7 +115,7 @@ def get_unique_id_from_string(text: str):
     within open and close parenthesis."""
     pattern = r"\((.*?)\)"
     matches = re.findall(pattern, text)
-    return text if not matches else matches[0]
+    return text if not matches else matches[-1]
 
 
 def dump_new_file(obj: BaseModel, json_file: Path) -> None | Path:
