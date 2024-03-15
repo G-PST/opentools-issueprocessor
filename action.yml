@@ -18,10 +18,8 @@ inputs:
     description: "Github Access Token"
     required: false
 outputs:
-  exitcode:
-    description: "Returns exit code after running pytest."
   branch:
-    description: "Branch name if created."
+    description: "Branch name to be created"
   errormessage:
     description: "Error message associated with parsing."
 runs:

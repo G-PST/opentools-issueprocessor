@@ -109,8 +109,9 @@ def _check_unique_name(ent: dict):
         raise ValueError(msg)
     return ent["unique_name"].lower().replace(" ", "-") + ".json"
 
+
 def get_unique_id_from_string(text: str):
-    """ Extracts unique id from given text assuming is included 
+    """Extracts unique id from given text assuming is included
     within open and close parenthesis."""
     pattern = r"\((.*?)\)"
     matches = re.findall(pattern, text)
@@ -165,7 +166,7 @@ def update_languages(langs: list[dict], lang_path: Path) -> list[Path]:
             name=lang["name"],
             description=lang["description"],
             url=lang["url"],
-            licenses= list(map(get_unique_id_from_string, lang['licenses'])),
+            licenses=list(map(get_unique_id_from_string, lang["licenses"])),
         )
         response = dump_new_file(lang_pydantic, lang_path / file_name)
         if response:
@@ -182,10 +183,12 @@ def update_software(softs: list[dict], soft_path: Path) -> list[Path]:
         lang_pydantic = SoftwareTool(
             name=soft["name"],
             description=soft["description"],
-            licenses=list(map(get_unique_id_from_string,soft["licenses"])),
-            languages=list(map(get_unique_id_from_string,soft["languages"])),
-            organizations=list(map(get_unique_id_from_string,soft["organizations"])),
-            categories=list(map(get_unique_id_from_string,soft["categories"])),
+            licenses=list(map(get_unique_id_from_string, soft["licenses"])),
+            languages=list(map(get_unique_id_from_string, soft["languages"])),
+            organizations=list(
+                map(get_unique_id_from_string, soft["organizations"])
+            ),
+            categories=list(map(get_unique_id_from_string, soft["categories"])),
             url_website=soft["url_website"],
             url_sourcecode=soft["url_sourcecode"],
             url_docs=soft["url_docs"],
@@ -225,18 +228,33 @@ def process_issue_json_file(json_file_path: Path, data_path: Path):
     return new_files
 
 
+def save_output(key: str, value: str, file_path: str):
+    """Function to save output."""
+    with open(file_path, "a", encoding="utf-8") as fh:
+        print(f"{key}={value}", file=fh)
+
+
+def save_multiline_output(key: str, value: str, file_path: str):
+    """Function to save multi line output."""
+    with open(file_path, "a", encoding="utf-8") as fh:
+        delimiter = "EOF"
+        print(f"{key}<<{delimiter}", file=fh)
+        print(value, file=fh)
+        print(delimiter, file=fh)
+
+
 def main():
     """Entry function for github action."""
     issue_number = os.environ["INPUT_ISSUE_NUMBER"]
     issue_title = os.environ["INPUT_ISSUE_TITLE"]
     issue_url = os.environ["INPUT_ISSUE_URL"]
     token = os.environ["INPUT_TOKEN"]
+    output_file = os.environ["GITHUB_OUTPUT"]
 
     print(issue_number, issue_title, issue_url, token)
 
     if issue_number or issue_title or issue_url or token:
         if not (issue_number and issue_title and issue_url and token):
-            print("::set-output name=exitcode::1")
             return
 
         os.environ["GITHUB_TOKEN"] = token
@@ -244,8 +262,8 @@ def main():
         try:
             file_name = download_data_file(issue_url, token)
             if not file_name:
-                print("::set-output name=exitcode::0")
                 return
+
             setup_github_permissions()
             branch_name = f"issue_{issue_number}_branch"
 
@@ -254,12 +272,13 @@ def main():
             )
             os.remove(file_name)
             if new_files:
-                print(f"::set-output name=branch::{branch_name}")
+                save_output("branch", branch_name, output_file)
             else:
                 print("No files to change. ")
-            print("::set-output name=exitcode::0")
         except Exception as _:
-            print(f"::set-output name=errormessage::{traceback.format_exc()}")
+            save_multiline_output(
+                "errormessage", traceback.format_exc(), output_file
+            )
 
 
 if __name__ == "__main__":
